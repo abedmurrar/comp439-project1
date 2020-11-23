@@ -5,9 +5,10 @@ import java.util.HashSet;
 import java.util.Set;
 
 public class State {
-    private final String letter;
+    private String letter;
     private final HashMap<String, Set<State>> paths;
     public boolean isFinalState = false;
+    public boolean isEndState = false;
     public boolean isReachable = false;
     public String represents = "";
 
@@ -19,6 +20,10 @@ public class State {
                 return keySet().toString();
             }
         };
+    }
+
+    public void setLetter(String letter) {
+        this.letter = letter;
     }
 
     public String getLetter() {

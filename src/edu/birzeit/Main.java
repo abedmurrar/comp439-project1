@@ -7,6 +7,9 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+/**
+ * @author Abed Al Rahman Murrar - 1140155
+ */
 public class Main {
 
     final static String DELTA = "@";
@@ -62,6 +65,8 @@ public class Main {
                     for (String s : endingStates) {
                         states.get(s).isFinalState = true;
                         originalStates.get(s).isFinalState = true;
+                        states.get(s).isEndState=true;
+                        originalStates.get(s).isEndState = true;
                     }
                     continue;
                 }
@@ -90,6 +95,13 @@ public class Main {
                 originalStates.get(edge[0]).addToPath(edge[2], states.get(edge[1]));
             }
             inputFileReader.close();
+
+            Set<State> visitedStates = new HashSet<>();
+            if (!reachesFinalState(states, START, visitedStates, 0)) {
+                System.out.println("String is not rejected because it does not reach a final state");
+                System.exit(0);
+            }
+            System.out.println("String is accepted\n\n");
 
             /**
              * merge rows from lambda column
@@ -149,6 +161,7 @@ public class Main {
                                             String[] alphabets = IntStream.rangeClosed('A', 'Z')
                                                     .mapToObj(c -> (char) c + ",")
                                                     .filter(c -> !states.containsKey(String.valueOf(c.charAt(0))))
+                                                    .filter(c -> !originalStates.containsKey(String.valueOf(c.charAt(0))))
                                                     .collect(Collectors.joining())
                                                     .split(",");
 
@@ -243,14 +256,31 @@ public class Main {
                                 }
 
                                 feasiblePair.isFinal = state1Object.isFinalState;
-
                             }
                         }
                     }
                 }
             }
 
+            for (FeasiblePair feasiblePair : feasiblePairs.values()) {
+                for (FeasiblePair feasiblePairRS : feasiblePair.getPaths().values()) {
+                    if (feasiblePairRS != null && !feasiblePairRS.isEqualPair()) {
+                        if (feasiblePairRS.isMarked || !feasiblePairs.containsKey(feasiblePairRS.getPairRepresentation())) {
+                            feasiblePair.isMarked = true;
+                        }
+                    }
+                }
+            }
 
+            for (FeasiblePair feasiblePair : feasiblePairs.values()) {
+                if (!feasiblePair.isMarked) {
+                    feasiblePair.pair2.setLetter(feasiblePair.pair2.getLetter());
+                    states.remove(feasiblePair.pair2.getLetter());
+                }
+            }
+
+
+            System.out.println("***** FINAL TRANSITION TABLE *****\n\n");
             /**
              * Print final table into the terminal
              */
@@ -311,6 +341,38 @@ public class Main {
         }
         states.get(currentState).isReachable = true;
         states.get(currentState).getPaths().forEach((k, v) -> v.forEach(state -> findNonReachableStates(states, state.getLetter())));
+    }
+
+    public static boolean reachesFinalState(HashMap<String, State> states, String currentState, Set<State> visitedStates, int tabs) {
+        if (states.get(currentState).isFinalState) {
+            for (int i = 0; i < tabs; i++) {
+                System.out.print("\t");
+            }
+            System.out.println(states.get(currentState).getLetter() + " is a Final State");
+            return true;
+        }
+        if (visitedStates.contains(states.get(currentState))) {
+            for (int i = 0; i < tabs; i++) {
+                System.out.print("\t");
+            }
+            System.out.println(states.get(currentState).getLetter());
+            return false;
+        }
+
+        visitedStates.add(states.get(currentState));
+
+        for (int i = 0; i < tabs; i++) {
+            System.out.print("\t");
+        }
+        System.out.print(states.get(currentState).getLetter() + " ->\n");
+        boolean finalValue = false;
+        for (Map.Entry<String, Set<State>> path : states.get(currentState).getPaths().entrySet()) {
+            for (State s : path.getValue()) {
+                finalValue |= reachesFinalState(states, s.getLetter(), visitedStates, tabs + 2);
+            }
+        }
+
+        return finalValue;
     }
 
 }
